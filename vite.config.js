@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import fs from 'node:fs';
 import path from 'node:path';
 import { icons as lucide } from 'lucide';
@@ -47,7 +47,28 @@ function lucideSubset() {
   };
 }
 
-export default defineConfig({
+/* Supabase settings: VITE_* names locally (.env.local), or the names the Vercel Supabase
+   integration sets. Only the public anon/publishable key belongs here, never the service role key. */
+function supabaseEnv(mode) {
+  const env = { ...loadEnv(mode, process.cwd(), ''), ...process.env };
+  const pick = (...names) => names.map(n => env[n]).find(Boolean) || '';
+  return {
+    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(pick('VITE_SUPABASE_URL', 'SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL')),
+    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(
+      pick(
+        'VITE_SUPABASE_ANON_KEY',
+        'VITE_SUPABASE_PUBLISHABLE_KEY',
+        'SUPABASE_ANON_KEY',
+        'SUPABASE_PUBLISHABLE_KEY',
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+        'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
+      ),
+    ),
+  };
+}
+
+export default defineConfig(({ mode }) => ({
   plugins: [lucideSubset()],
+  define: supabaseEnv(mode),
   server: { port: 5173 },
-});
+}));
