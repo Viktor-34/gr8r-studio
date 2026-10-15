@@ -54,7 +54,10 @@ import './features/archive.js';
 import './actions/teams.js';
 import './actions/subtasks.js';
 import './actions/archive.js';
+import './actions/session.js';
 import { S, D } from './core/store.js';
+import { REMOTE } from './core/supabase.js';
+import { startSession } from './actions/session.js';
 import { A } from './actions/actions.js';
 import { ROUTE_NAMES, render, go } from './shell/render.js';
 
@@ -68,6 +71,7 @@ import { ROUTE_NAMES, render, go } from './shell/render.js';
     document.body.appendChild(l);
   }
   const h = (location.hash || '').slice(1);
+  if (REMOTE) return startSession(h);
   const authRoutes = ['login', 'signup', 'forgot', 'reset', 'verify', 'onboarding'];
   if (authRoutes.includes(h)) S.ui.auth = h;
   else if (h && ROUTE_NAMES[h]) S.ui.route = h;

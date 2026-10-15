@@ -3,6 +3,7 @@ import { esc } from '../core/utils.js';
 import { LOGO, ic } from '../core/icons.js';
 import { D, S } from '../core/store.js';
 import { effectiveDark } from '../core/theme.js';
+import { REMOTE } from '../core/supabase.js';
 import { TEMPLATES } from '../overlays/modals.js';
 import { strengthMeter } from './settings.js';
 
@@ -20,7 +21,8 @@ export const icls = k => (S.ui.errors[k] ? 'is-error' : '');
 export function renderAuth() {
   const s = S.ui.auth;
   const e = S.ui.errors;
-  const f = S.ui.af || (S.ui.af = { email: 'hello@gr8rstudio.com', name: '' });
+  const f = S.ui.af || (S.ui.af = { email: REMOTE ? '' : 'hello@gr8rstudio.com', name: '' });
+  if (REMOTE) return renderRemoteAuth(s, e, f);
   if (s === 'onboarding') return renderOnboarding();
   if (s === 'login')
     return authShell(
@@ -75,6 +77,26 @@ export function renderAuth() {
     <button class="btn btn-secondary btn-lg btn-block" data-a="resend" data-v="verify" id="resend-btn" ${S.ui.resendT > 0 ? 'disabled' : ''}>${S.ui.resendT > 0 ? `Resend email in <span class="num" id="resend-t">${S.ui.resendT}</span>s` : 'Resend email'}</button>
     <p class="auth-foot">Wrong email? <button class="link" data-a="auth" data-v="signup">Change it</button></p></div>`);
   return '';
+}
+
+/* sign-in by emailed link (Supabase backend); there is no sign-up, people are invited */
+function renderRemoteAuth(s, e, f) {
+  const card = inner => authShell(`<div class="auth-card${S.ui.fx.auth ? ' fx-auth' : ''}">${inner}</div>`);
+  if (s === 'boot')
+    return card(
+      S.ui.bootErr
+        ? `<div style="display:flex;justify-content:center"><span class="ftype" style="--c:var(--red);width:44px;height:44px;border-radius:11px">${ic('cloud-off', 20)}</span></div><h1>Couldn't load your workspace</h1><p class="sub">${esc(S.ui.bootErr)}</p><button class="btn btn-primary btn-lg btn-block" data-a="retryBoot">Try again</button><button class="btn btn-secondary btn-lg btn-block" data-a="signOut">Sign out</button>`
+        : `<div style="display:flex;justify-content:center">${LOGO(30)}</div><div class="panel" style="padding:12px 14px;display:flex;gap:10px;align-items:center;justify-content:center"><span class="sk" style="width:8px;height:8px;border-radius:50%;animation-duration:1.1s"></span><span class="muted" style="font-size:13px">Loading your workspace…</span></div>`,
+    );
+  if (s === 'link-sent')
+    return card(`<div style="display:flex;justify-content:center"><span class="ftype" style="--c:var(--green);width:44px;height:44px;border-radius:11px">${ic('mail-check', 20)}</span></div><h1>Check your email</h1><p class="sub">We sent a sign-in link to <b style="color:var(--text)">${esc(f.email)}</b>. Open it in this browser to continue.</p>
+    <p class="auth-foot">Didn't get it? <button class="link" data-a="auth" data-v="login">Try again</button></p>`);
+  return authShell(`<form class="auth-card${S.ui.fx.auth ? ' fx-auth' : ''}" data-submit="doLogin" novalidate>
+    <div style="display:flex;justify-content:center">${LOGO(30)}</div><h1>Welcome back</h1><p class="sub">We'll email you a link to sign in. No password needed.</p>
+    ${e.login ? `<div class="alert danger" role="alert">${ic('circle-alert', 15)}<span>${e.login}</span></div>` : ''}
+    <div class="field"><label class="label" for="l-email">Email</label><input class="input input-lg ${icls('email')}" id="l-email" type="email" value="${esc(f.email)}" autocomplete="email" aria-invalid="${!!e.email}" aria-describedby="email-err" autofocus>${ferr('email')}</div>
+    <button class="btn btn-primary btn-lg btn-block" data-a="doLogin" id="login-btn">Email me a sign-in link</button>
+    <p class="auth-foot">Access is by invitation only.</p></form>`);
 }
 
 /* ---------------- ONBOARDING ---------------- */

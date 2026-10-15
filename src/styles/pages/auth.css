@@ -45,6 +45,10 @@
   text-align: center;
 }
 .auth-card .sub {
+  /* undo the sidebar submenu rule that shares the .sub class */
+  display: block;
+  padding: 0;
+  border: 0;
   text-align: center;
   color: var(--text-2);
   margin: -8px 0 4px;

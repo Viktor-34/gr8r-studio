@@ -2,6 +2,7 @@
 import { TODAY, diffD, iso, parse, uid } from './utils.js';
 import { PCOLORS, TEAMS_SEED } from './constants.js';
 import { seed } from '../data/seed.js';
+import { REMOTE } from './supabase.js';
 
 export const STORE_KEY = 'gr8r.v2';
 export const DEFAULT_PREFS = {
@@ -24,7 +25,7 @@ export function load() {
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) {
       const j = JSON.parse(raw);
-      if (j && j.data && j.data.tasks) return j;
+      if (j && (j.data?.tasks || j.prefs)) return j;
     }
   } catch {
     /* storage blocked or corrupt: start from seed data */
@@ -33,7 +34,8 @@ export function load() {
 }
 export const saved = load();
 export const S = {
-  data: saved?.data || seed(),
+  // With a backend the workspace comes from Supabase after sign-in (shell/sync.js), not from this browser.
+  data: (!REMOTE && saved?.data) || seed(),
   prefs: Object.assign({}, DEFAULT_PREFS, saved?.prefs || {}),
   views: saved?.views || {},
   ui: {
@@ -83,11 +85,14 @@ export const S = {
   },
 };
 export let _saveT;
+/* set by shell/sync.js when a backend is configured; called after every save */
+export const hooks = { afterSave: null };
 export function save() {
   clearTimeout(_saveT);
   _saveT = setTimeout(() => {
+    hooks.afterSave?.();
     try {
-      localStorage.setItem(STORE_KEY, JSON.stringify({ data: S.data, prefs: S.prefs, views: S.views, collapsed: S.ui.collapsed }));
+      localStorage.setItem(STORE_KEY, JSON.stringify({ data: REMOTE ? null : S.data, prefs: S.prefs, views: S.views, collapsed: S.ui.collapsed }));
     } catch {
       /* storage full or blocked: keep working in memory */
     }
